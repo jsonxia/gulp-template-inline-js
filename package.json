@@ -10,6 +10,12 @@
     "type": "git",
     "url": "git+https://github.com/jsonxia/gulp-template-inline-js.git"
   },
+  "dependencies": {
+    "gulp-util": ">=3.0.0 <4.0.0-0",
+    "iconv-lite": "0.2.10",
+    "through2": ">=0.6.1 <1.0.0-0",
+    "vinyl": "^0.4.0"
+  },
   "keywords": [
     "gulp-template-inline-js",
     "underscore"
