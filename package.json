@@ -1,0 +1,23 @@
+{
+  "name": "gulp-template-inline-js",
+  "version": "1.0.0",
+  "description": "underscore template inline in js",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jsonxia/gulp-template-inline-js.git"
+  },
+  "keywords": [
+    "gulp-template-inline-js",
+    "underscore"
+  ],
+  "author": "jsonxia",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jsonxia/gulp-template-inline-js/issues"
+  },
+  "homepage": "https://github.com/jsonxia/gulp-template-inline-js#readme"
+}
