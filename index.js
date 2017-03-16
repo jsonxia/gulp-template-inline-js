@@ -85,7 +85,6 @@ module.exports = function (opt) {
 
     content = content.replace(reg, function (m, type, url) {
       if (type === '__template' || type === '__inline') {
-        console.log(1)
         var info = util.uri(url, util.dirname(file.path));
         if (info && info.file) {
           try {
