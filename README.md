@@ -1,5 +1,6 @@
 # gulp-template-inline-js
-在js文件中嵌入template文件
+## 作用 
+	在js文件中嵌入template文件,编译成underscore模板语法的生成函数
 ## 安装
     npm i gulp-template-inline-js --save-dev
 ## 使用方法
@@ -13,8 +14,45 @@
     });
 
 ## JS使用方法
-可引入模板
-var tpl = __template("../tpl/xxx.tpl");
-var html = tpl();
-可内联JS
-__inline("../tpl/xxx.tpl");
+
+#从JS里引入test.tpl模板文件
+
+	var tpl = __template("../tpl/test.tpl");
+	var html = tpl({data:[1,3,4,5]});
+
+	test.tpl文件
+ 
+	<% for (var i = 0; i < data.length; i++) { %>
+		<li><%= data[i] %></li>
+	<% } %>
+
+#编译后可得
+
+	var tpl = function(obj){
+	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
+	with(obj||{}){
+		__p+='';
+		 for (var i = 0; i < data.length; i++) { 
+			__p+='<li>'+
+			((__t=( data[i] ))==null?'':__t)+
+			'</li>';
+		 } 
+		__p+='';
+	}
+	return __p;
+	};
+
+	var html = tpl({data:[12,3,4,5]});
+# 具体可参考[underscore](http://http://www.css88.com/doc/underscore/#template "underscore") 
+
+#也可在JS里内联JS文件
+
+	__inline("../js/foo.js");
+
+编译可得，
+
+	function foo () { 
+		bar();
+	}
+
+注意，不要__inline模板文件，否则会引起js报错
