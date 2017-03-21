@@ -93,7 +93,7 @@ module.exports = function (opt) {
                embed(f);
                m = String(f.contents);
                if (type === '__template') {
-                  m = m ? m.replace(/[\r\n\t]/gm, '').replace(/'/gm, '\\\'').replace(/\s{2,}/gim, '\s') : '';
+                  m = m ? m.replace(/[\r\n\t]/gm, '').replace(/'/gm, '\\\'') : '';
                   m = _.template(m).source;
                }
             }
