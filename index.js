@@ -7,7 +7,7 @@ var _ = require('./lib/underscore.js');
 
 var PluginError = gutil.PluginError;
 
-var pluginName = 'gulp-template-js';
+var pluginName = 'gulp-template-inline-js';
 
 var stringRegStr = '(?:' +
   '\"(?:[^\\\\\"\\r\\n\\f]|\\\\[\\s\\S])*\"' + //match the " delimiter string
