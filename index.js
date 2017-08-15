@@ -10,132 +10,108 @@ var PluginError = gutil.PluginError;
 var pluginName = 'gulp-template-inline-js';
 
 var stringRegStr = '(?:' +
-  '\"(?:[^\\\\\"\\r\\n\\f]|\\\\[\\s\\S])*\"' + //match the " delimiter string
-  '|' +
-  '\'(?:[^\\\\\'\\r\\n\\f]|\\\\[\\s\\S])*\'' + //match the ' delimiter string
-  ')';
+    '\"(?:[^\\\\\"\\r\\n\\f]|\\\\[\\s\\S])*\"' + //match the " delimiter string
+    '|' +
+    '\'(?:[^\\\\\'\\r\\n\\f]|\\\\[\\s\\S])*\'' + //match the ' delimiter string
+    ')';
 
 var jscommentRegStr = '(?:' +
-  '\\/\\/[^\\r\\n\\f]*' + // match the single line comment
-  '|' +
-  '\\/\\*[\\s\\S]+?\\*\\/' + //match the multi line comment
-  ')';
+    '\\/\\/[^\\r\\n\\f]*' + // match the single line comment
+    '|' +
+    '\\/\\*[\\s\\S]+?\\*\\/' + //match the multi line comment
+    ')';
 
 var inlineRegStr = '\\b(__template|__inline)\\s*\\(\\s*(' + stringRegStr + ')\\s*\\)';
 
 function createError(file, err) {
-  if (typeof err === 'string') {
-    return new PluginError(pluginName, file.path + ': ' + err, {
-      fileName: file.path,
-      showStack: false
+    if (typeof err === 'string') {
+        return new PluginError(pluginName, file.path + ': ' + err, {
+            fileName: file.path,
+            showStack: false
+        });
+    }
+
+    var msg = err.message || err.msg || 'unspecified error';
+
+    return new PluginError(pluginName, file.path + ': ' + msg, {
+        fileName: file.path,
+        lineNumber: err.line,
+        stack: err.stack,
+        showStack: false
     });
-  }
-
-  var msg = err.message || err.msg || 'unspecified error';
-
-  return new PluginError(pluginName, file.path + ': ' + msg, {
-    fileName: file.path,
-    lineNumber: err.line,
-    stack: err.stack,
-    showStack: false
-  });
 }
 
-module.exports = function (opt) {
+module.exports = function(opt) {
 
-  var embeddedMap = {};
-
-  function embeddedCheck(fileMain, fileEmbedded) {
-    var main = fileMain.path;
-    var embedded = fileEmbedded.path;
-
-    if (main === embedded) {
-      error('unable to embed file[' + main + '] into itself.');
-    } else if (embeddedMap[embedded]) {
-      var next = embeddedMap[embedded],
-        msg = [embedded];
-      while (next && next !== embedded) {
-        msg.push(next);
-        next = embeddedMap[next];
-
-      }
-      console.log(msg);
-      msg.push(embedded);
-      error('circular dependency on [' + msg.join('] -> [') + '].');
+    function embeddedCheck(fileMain, fileEmbedded) {
+        var main = fileMain.path;
+        var embedded = fileEmbedded.path;
+        if (main === embedded) {
+            error('unable to embed file[' + main + '] into itself.');
+        }else {
+          return true;
+        }
     }
-    embeddedMap[embedded] = main;
-    return true;
-  }
 
-  function embeddedUnlock(file) {
-    delete embeddedMap[file.path];
-  }
+    function error(msg) {
+        //for watching, unable to exit
+        embeddedMap = {};
+        throw new Error(msg);
+    }
 
-  function error(msg) {
-    //for watching, unable to exit
-    embeddedMap = {};
-    throw new Error(msg);
-  }
+    function embed(file) {
+        var reg = new RegExp(stringRegStr + '|' +
+            jscommentRegStr + '|' + inlineRegStr, 'g');
 
-  function embed(file) {
-    var reg = new RegExp(stringRegStr + '|' +
-    jscommentRegStr + '|' + inlineRegStr, 'g');
+        var content = String(file.contents);
 
-    var content = String(file.contents);
-
-    content = content.replace(reg, function (m, type, url) {
-      if (type === '__template' || type === '__inline') {
-        var info = util.uri(url, util.dirname(file.path));
-        if (info && info.file) {
-          try {
-            var f = info.file;
-            if (embeddedCheck(file, f)) {
-               embed(f);
-               m = String(f.contents);
-               if (type === '__template') {
-                  m = m ? m.replace(/[\r\n\t]/gm, '') : '';
-                  m = _.template(m).source;
-               }
+        content = content.replace(reg, function(m, type, url) {
+            if (type === '__template' || type === '__inline') {
+                var info = util.uri(url, util.dirname(file.path));
+                if (info && info.file) {
+                    try {
+                        var f = info.file;
+                        if (embeddedCheck(file, f)) {
+                            embed(f);
+                            m = String(f.contents);
+                            if (type === '__template') {
+                                m = m ? m.replace(/[\r\n\t]/gm, '') : '';
+                                m = _.template(m).source;
+                            }
+                        }
+                    } catch (e) {
+                        embeddedMap = {};
+                        e.message = e.message + ' in [' + file.path + ']';
+                        throw e;
+                    }
+                } else {
+                    var msg = 'unable to inline non-existent file [' + url + ']'
+                    throw new Error(msg);
+                }
             }
-          }
-          catch (e) {
-            embeddedMap = {};
-            e.message = e.message + ' in [' + file.path + ']';
-            throw e;
-          }
+            return m;
+        });
+
+        file.contents = new Buffer(content);
+    }
+
+    function expand(file, encoding, callback) {
+
+        if (file.isNull()) {
+            return callback(null, file);
         }
-        else {
-          var msg = 'unable to inline non-existent file [' + url + ']'
-          throw new Error(msg);
+
+        if (file.isStream()) {
+            return callback(createError(file, 'Streaming not supported'));
         }
-      }
-      return m;
-    });
 
-    file.contents = new Buffer(content);
-  }
-
-  function expand(file, encoding, callback) {
-
-    if (file.isNull()) {
-      return callback(null, file);
+        try {
+            embed(file);
+        } catch (e) {
+            return callback(createError(file, e.message));
+        }
+        callback(null, file);
     }
 
-    if (file.isStream()) {
-      return callback(createError(file, 'Streaming not supported'));
-    }
-
-    try {
-      embed(file);
-    }
-    catch (e) {
-      return callback(createError(file, e.message));
-    }
-
-    embeddedUnlock(file);
-
-    callback(null, file);
-  }
-
-  return through.obj(expand);
+    return through.obj(expand);
 };
